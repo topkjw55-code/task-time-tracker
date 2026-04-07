@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>업무 타임 트래커</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #10131a;
+      --panel: #171f2d;
+      --panel-soft: #1f293d;
+      --text: #e7eef6;
+      --muted: #98a9c7;
+      --accent: #4f95ff;
+      --accent-2: #48cfad;
+      --danger: #ff6b81;
+      --success: #48cfad;
+      --border: rgba(255,255,255,0.08);
+      --shadow: 0 20px 50px rgba(0,0,0,0.25);
+      font-family: Inter, "Noto Sans KR", system-ui, sans-serif;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top, rgba(79,149,255,0.12), transparent 30%),
+                  linear-gradient(180deg, #0c1117 0%, #10131a 100%);
+      color: var(--text);
+    }
+    .page {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 32px 24px 48px;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(2rem, 2.2vw, 2.6rem);
+      letter-spacing: -0.03em;
+    }
+    p.subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.98rem;
+    }
+    .form-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow);
+    }
+    .form-group {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .form-group input {
+      flex: 1;
+      padding: 12px 16px;
+      background: var(--panel-soft);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-size: 1rem;
+    }
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .form-group button {
+      padding: 12px 24px;
+      background: var(--accent);
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .form-group button:hover {
+      background: #3d7be0;
+    }
+    .summary-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+    .summary-card h2 {
+      margin: 0 0 8px;
+      font-size: 1.5rem;
+      color: var(--text);
+    }
+    .summary-card .total-time {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin: 0;
+    }
+    .content-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    .panel {
+      background: var(--panel-soft);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+    .panel h3 {
+      margin: 0 0 16px;
+      font-size: 1.2rem;
+      color: var(--text);
+    }
+    .task-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .task-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+    .task-item:last-child {
+      margin-bottom: 0;
+    }
+    .task-info {
+      flex: 1;
+    }
+    .task-name {
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .task-time {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .delete-btn {
+      background: var(--danger);
+      border: none;
+      border-radius: 8px;
+      padding: 6px 12px;
+      color: white;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .delete-btn:hover {
+      background: #e55b6f;
+    }
+    canvas {
+      width: 100% !important;
+      height: auto !important;
+      max-height: 300px;
+    }
+    .no-data {
+      text-align: center;
+      color: var(--muted);
+      padding: 40px 20px;
+    }
+    @media (max-width: 768px) {
+      .content-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <h1>업무 타임 트래커</h1>
+      <p class="subtitle">오늘의 업무 시간을 기록하고 관리하세요.</p>
+    </header>
+
+    <div class="form-card">
+      <form id="taskForm">
+        <div class="form-group">
+          <input type="text" id="taskName" placeholder="업무명 입력" required />
+          <input type="number" id="taskTime" placeholder="시간(분)" min="1" required />
+          <button type="submit">추가</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="summary-card">
+      <h2>오늘 총 업무 시간</h2>
+      <p class="total-time" id="totalTime">0분</p>
+    </div>
+
+    <div class="content-grid">
+      <div class="panel">
+        <h3>업무 목록</h3>
+        <ul class="task-list" id="taskList">
+          <li class="no-data">아직 추가된 업무가 없습니다.</li>
+        </ul>
+      </div>
+
+      <div class="panel">
+        <h3>업무 시간 분포</h3>
+        <canvas id="timeChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    const taskForm = document.getElementById('taskForm');
+    const taskNameInput = document.getElementById('taskName');
+    const taskTimeInput = document.getElementById('taskTime');
+    const taskList = document.getElementById('taskList');
+    const totalTimeEl = document.getElementById('totalTime');
+    const STORAGE_KEY = 'taskTrackerData';
+
+    let tasks = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+
+    function saveTasks() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    }
+
+    function formatTime(minutes) {
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      if (hours > 0) {
+        return `${hours}시간 ${mins}분`;
+      }
+      return `${mins}분`;
+    }
+
+    function updateTotalTime() {
+      const totalMinutes = tasks.reduce((sum, task) => sum + task.time, 0);
+      totalTimeEl.textContent = formatTime(totalMinutes);
+    }
+
+    function updateTaskList() {
+      if (tasks.length === 0) {
+        taskList.innerHTML = '<li class="no-data">아직 추가된 업무가 없습니다.</li>';
+        return;
+      }
+
+      taskList.innerHTML = tasks.map((task, index) => `
+        <li class="task-item">
+          <div class="task-info">
+            <div class="task-name">${task.name}</div>
+            <div class="task-time">${formatTime(task.time)}</div>
+          </div>
+          <button class="delete-btn" onclick="deleteTask(${index})">삭제</button>
+        </li>
+      `).join('');
+    }
+
+    function updateChart() {
+      const ctx = document.getElementById('timeChart').getContext('2d');
+
+      if (tasks.length === 0) {
+        // 빈 차트 표시
+        new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: ['데이터 없음'],
+            datasets: [{
+              data: [1],
+              backgroundColor: ['rgba(152,169,199,0.3)'],
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: { enabled: false }
+            }
+          }
+        });
+        return;
+      }
+
+      const colors = [
+        '#4f95ff', '#48cfad', '#ff6b81', '#ffd93d', '#a78bfa',
+        '#f472b6', '#fb7185', '#60a5fa', '#34d399', '#fbbf24'
+      ];
+
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: tasks.map(task => task.name),
+          datasets: [{
+            data: tasks.map(task => task.time),
+            backgroundColor: tasks.map((_, index) => colors[index % colors.length]),
+            borderWidth: 2,
+            borderColor: 'rgba(255,255,255,0.1)'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                color: '#e7eef6',
+                font: { size: 12 }
+              }
+            },
+            tooltip: {
+              backgroundColor: '#1f293d',
+              titleColor: '#ffffff',
+              bodyColor: '#e7eef6',
+              borderColor: 'rgba(255,255,255,0.08)',
+              borderWidth: 1,
+              callbacks: {
+                label: function(context) {
+                  const minutes = context.parsed;
+                  const percentage = ((minutes / tasks.reduce((sum, task) => sum + task.time, 0)) * 100).toFixed(1);
+                  return `${context.label}: ${formatTime(minutes)} (${percentage}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function addTask(name, time) {
+      tasks.push({ name, time: parseInt(time) });
+      saveTasks();
+      updateTaskList();
+      updateTotalTime();
+      updateChart();
+      taskNameInput.value = '';
+      taskTimeInput.value = '';
+    }
+
+    function deleteTask(index) {
+      tasks.splice(index, 1);
+      saveTasks();
+      updateTaskList();
+      updateTotalTime();
+      updateChart();
+    }
+
+    taskForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = taskNameInput.value.trim();
+      const time = taskTimeInput.value;
+
+      if (name && time) {
+        addTask(name, time);
+      }
+    });
+
+    // 초기 로드
+    updateTaskList();
+    updateTotalTime();
+    updateChart();
+  </script>
+</body>
+</html>
